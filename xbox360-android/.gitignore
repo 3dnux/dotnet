@@ -3,4 +3,3 @@ build/
 local.properties
 *.iml
 .cxx/
-third_party/xenia/
