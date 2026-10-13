@@ -67,7 +67,12 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(blades)
         root.addView(content, LinearLayout.LayoutParams(-1, 0, 1f))
-        setContentView(root)
+        val frame = FrameLayout(this).apply { addView(root, -1, -1) }
+        setContentView(frame)
+        // El intro solo se ve al abrir la app, no al girar la pantalla ni al volver de un juego.
+        if (savedInstanceState == null) {
+            frame.addView(IntroView(this) { frame.removeView(frame.getChildAt(frame.childCount - 1)) }, -1, -1)
+        }
         select("Juegos", blades)
         showGames(store.load())
     }
