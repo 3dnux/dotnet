@@ -12,7 +12,7 @@ Lo que ya trae Xenia: un proyecto Android Studio propio (`third_party/xenia/andr
 Consecuencia: el esqueleto Kotlin/CMake de `app/` es un prototipo paralelo. El camino realista es trabajar sobre el proyecto Android de Xenia y escribir el backend `a64`, no mantener dos apps.
 
 ## Interfaz
-`MainActivity` imita el dashboard de la 360: barra de blades (Mercado / Juegos / Medios / Sistema) y, en Juegos, una cuadrícula de portadas. La biblioteca se llena eligiendo una carpeta (selector del sistema, sin permisos amplios) y se guarda en el dispositivo. Pendiente: leer el título real y el icono desde el XEX/ISO, logros, guías de superposición y animaciones de blades.
+`MainActivity` imita el dashboard de la 360: barra de blades (Mercado / Juegos / Medios / Sistema) y, en Juegos, una cuadrícula de portadas. La biblioteca se llena eligiendo una carpeta (selector del sistema, sin permisos amplios) y se guarda en el dispositivo. Para archivos `.xex` se lee el título, el ID y el icono reales (`app/src/main/cpp/xex_info.cpp`: cabecera XEX2, AES, compresión none/basic/LZX y recurso XDBF); `tests/xex/run.sh` lo prueba en el host con XEX sintéticos. Pendiente: lo mismo para `.iso` (sistema de archivos GDF) y `.zar`; XEX con parches delta; logros, guías de superposición y animaciones de blades.
 
 ## Hoja de ruta
 1. Añadir Xenia en `third_party/xenia` (submódulo) y portar el build a CMake/NDK arm64.

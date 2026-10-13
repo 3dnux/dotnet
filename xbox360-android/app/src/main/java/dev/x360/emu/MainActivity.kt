@@ -1,6 +1,8 @@
 package dev.x360.emu
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -8,6 +10,8 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.util.LruCache
+import android.widget.ImageView
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -35,7 +39,7 @@ class MainActivity : AppCompatActivity() {
         status.text = "Buscando juegos…"
         Thread {
             val games = LibraryScanner.scan(this, tree)
-            val merged = (store.load() + games).distinctBy { it.uri }
+            val merged = (games + store.load()).distinctBy { it.uri }
             store.save(merged)
             runOnUiThread { showGames(merged) }
         }.start()
@@ -113,26 +117,42 @@ class MainActivity : AppCompatActivity() {
 
 private class GameAdapter(private val onClick: (Game) -> Unit) : RecyclerView.Adapter<GameAdapter.VH>() {
     private var items: List<Game> = emptyList()
-    class VH(v: View) : RecyclerView.ViewHolder(v)
+    private val icons = LruCache<String, Bitmap>(64)
+
+    class VH(val root: FrameLayout, val icon: ImageView, val label: TextView) : RecyclerView.ViewHolder(root)
 
     fun submit(list: List<Game>) { items = list.sortedBy { it.title.lowercase() }; notifyDataSetChanged() }
     override fun getItemCount() = items.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+        val ctx = parent.context
         val d = parent.resources.displayMetrics.density
-        val tile = TextView(parent.context).apply {
-            layoutParams = ViewGroup.MarginLayoutParams(-1, (150 * d).toInt()).apply { setMargins(8, 8, 8, 8) }
+        val icon = ImageView(ctx).apply { scaleType = ImageView.ScaleType.CENTER_CROP }
+        val label = TextView(ctx).apply {
             gravity = Gravity.BOTTOM or Gravity.START; setPadding(24, 24, 24, 24)
-            setTextColor(Color.WHITE); textSize = 14f; maxLines = 3
+            setTextColor(Color.WHITE); textSize = 14f; maxLines = 2
+            background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(Color.TRANSPARENT, Color.parseColor("#CC000000")))
+        }
+        val root = FrameLayout(ctx).apply {
+            layoutParams = ViewGroup.MarginLayoutParams(-1, (150 * d).toInt()).apply { setMargins(8, 8, 8, 8) }
+            clipToOutline = true
             background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
                 intArrayOf(Color.parseColor("#2E7D0F"), Color.parseColor("#0E2A06"))).apply { cornerRadius = 8 * d }
+            addView(icon, -1, -1)
+            addView(label, FrameLayout.LayoutParams(-1, -1))
         }
-        return VH(tile)
+        return VH(root, icon, label)
     }
 
     override fun onBindViewHolder(h: VH, i: Int) {
         val game = items[i]
-        (h.itemView as TextView).text = game.title
-        h.itemView.setOnClickListener { onClick(game) }
+        h.label.text = game.title
+        h.icon.setImageBitmap(game.iconPath?.let(::loadIcon))
+        h.root.setOnClickListener { onClick(game) }
     }
+
+    private fun loadIcon(path: String): Bitmap? =
+        icons.get(path) ?: BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = 1 })
+            ?.also { icons.put(path, it) }
 }
